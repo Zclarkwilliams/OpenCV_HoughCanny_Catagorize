@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #! Python 3
 import os
 import cv2
@@ -64,7 +63,7 @@ def read_imgs(imagefile):
     img_list = []
     i = 0
     
-    print("Images being read through...")
+    print("Reading images through...")
 
     for i in range(len(imgfile)):
         img = cv2.imread(imgfile[i])
@@ -85,11 +84,16 @@ def canny_fltr(imgs):
     edge_list = []
     i = 0
 
-    print("Images processing through canny filter...")
+    #   Threshold values for edge detection of Canny Filter
+    min_thresh = 100
+    max_thresh = 200
+
+    print("Processing images through canny filter...")
 
     for i in range(len(imgs)):
         if imgs[i] is not None:
-            edge = cv2.Canny(imgs[i], 100, 101)
+            #   Process through canny edge detection filter
+            edge = cv2.Canny(imgs[i], min_thresh, max_thresh)
             edge_list.append(edge)
         else:
             print("ERROR(canny_fltr()): Image file is 'None' file: " + str(imgs[i]))
@@ -105,25 +109,43 @@ dilate_fltr(imgs)
     output
         dilated_list -> list of images that have been dilated through OpenCV
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
-def dilate_fltr(imgs):
+def dilate_fltr(imgs, subs):
     global dilated_list
     global img_diff_list
     img_diff_list = []
+    img_diff = []
     dilated_list = []
     i = 0
-    kernel = np.ones((5,5), np.uint8)
+    
+    #   Setup kernel for dialtion processing
+    kern_size = (5,5)
+    kernel = np.ones(kern_size, np.uint8)
 
-    print("Images processing through dilation...")
+    print("Dilation of images processing...")
     
     #   Dilate images
     for i in range(len(imgs)):
         if imgs[i] is not None:
+            #   Dilate the image on a 5x5 kernel 
             dilated_img = cv2.dilate(imgs[i], kernel, iterations = 1)
             dilated_list.append(dilated_img)
         else:
             print("ERROR(dilate_fltr()): Image file is 'None' file: " + str(imgs[i]))
             exit
     print("Images processed through dilation successfully.")
+
+    #   Subtract original image from dilated image
+    if subs == 1:
+        print("Dilated images seperating from original image...")
+        j = 0
+        for j in range(len(dilated_list)):
+            if dilated_list[j] is not None:
+                #   Convert lists to numpy array for subtraction operation
+                #   Subract src2 from src1 assign to numpy array (img_diff = src1 - src2)
+                img_diff = (dilated_list[j] - imgs[j])
+                img_diff_list.append(img_diff)
+        print("Original image removed from dilated transformation successfully.")
+
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 print_imgs(og_imgs, fltr_imgs)
@@ -136,11 +158,29 @@ print_imgs(og_imgs, fltr_imgs)
                output
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
 def print_imgs(og_imgs, fltr_imgs):
+
+    print("Plotting filtered and original iamges...")
+
     i = 0
     if len(og_imgs) == len(fltr_imgs):
         for i in range(len(og_imgs)):
             if og_imgs is not None and fltr_imgs is not None:
-                cv2.imshow('image' + str(fltr_imgs[i]), fltr_imgs[i])#img_horizontal_concat)
+                plt.figure()
+                a1 = plt.subplot(1,2,1)
+                a1.imshow(fltr_imgs[i])
+                plt.axis('off')
+                a1.set_title('Filtered Image ' \
+                              + str(i) \
+                              + " of " \
+                              + str(len(fltr_imgs)))
+                a2 = plt.subplot(1,2,2)
+                a2.imshow(og_imgs[i])
+                plt.axis('off')
+                a2.set_title('Original Image ' \
+                              + str(i) \
+                              + " of " \
+                              + str(len(og_imgs)))
+                plt.show()
             else:
                 print("ERROR(print_imgs()): Image file is 'None' original image file: " \
                        + og_imgs[i] \
@@ -162,6 +202,7 @@ wait_to_close()
         NONE
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
 def wait_to_close():
+    print("Press 'esc' to close windows")
     #   Wait to close the windows
     key = cv2.waitKey(0)
     if key == 27: # escape
@@ -175,8 +216,8 @@ def wait_to_close():
 load_imgs(directory)
 read_imgs(imgfile)
 canny_fltr(img_list)
-dilate_fltr(img_list)
-#print_imgs(img_list, edge_list)
+dilate_fltr(edge_list, 0)
+print_imgs(img_list, img_diff_list)#edge_list)
 
 wait_to_close()
 
@@ -188,72 +229,3 @@ wait_to_close()
 #figure(3), imshow(edgesImg), title('Edges')
 #imgComplement = imcomplement(edgesImg)
 #figure(4), imshow(imgComplement), title('Edges, complemented image')
-=======
-#! Python 3
-import os
-import cv2
-import numpy as np
-import array as array
-from pathlib import Path
-from matplotlib import pyplot as plt
-
-zack_path_ext = "C:/Users/Zachary/Documents/A School/ECE578-9_IntelligentRobotics_1-2/HW_6_CannyHough/pics"
-
-#path = "C:/Users" + zack_path_ext
-#path = os.path.realpath(path)
-#os.startfile(path)
-
-directory = os.fsencode(zack_path_ext)
-kernel = np.ones((5,5),np.uint8)
-dilatedimgs = []
-imgs = []
-edges = []
-
-for file in os.listdir(directory):
-   #    Decode the filename from the file system
-    filename = os.fsdecode(file)
-    
-    #   Proceed through all 'jpeg' files in folder with
-    if filename.endswith(".jpg"):
-        print(filename)
-        #   load the image file
-        img = cv2.imread(filename,0)
-        imgs.append(img)
-        #   perform canny edge detection process
-        edge = cv2.Canny(img,100,110)
-        edges.append(edge)
-        #   dilate the image and generate morphological graph
-        dilatedimg = cv2.dilate(img, kernel, iterations = 1)
-        dilatedimgs.append(dilatedimg)
-        continue
-    else:
-        print("All Files Loaded and Run")
-
-# a) Dilation and subtraction to extract edge information
-
-#imjesus = cv2.imread(imgfile,0)
-#se = strel('square', 5);                            # structuring element
-#dilatedimg = cv2.dilate(img[0], kernel, iterations = 1)                # Dilate input image
-#figure(2), imshow(dilatedImg), title('Dilated')
-# subtract input img from dilated image:
-#edgesImg = imsubtract( dilatedImg, inputImg )
-#figure(3), imshow(edgesImg), title('Edges')
-#imgComplement = imcomplement(edgesImg)
-#figure(4), imshow(imgComplement), title('Edges, complemented image')
-
-
-'''
-j = 0
-while j < len(imgs):
-    #   Generate image graph for the original image
-    plt.subplot(2,1,1),plt.imshow(imgs[j],cmap = 'gray')
-    plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-    #   Generate iamge graph for the canny transform
-    plt.subplot(2,1,2),plt.imshow(edges[j],cmap = 'gray')
-    plt.title('Canny Edge Detection'), plt.xticks([]), plt.yticks([])
-    #   Print image graphs generated
-    plt.show()
-    j += 1
-
-'''
->>>>>>> c6dc5d46c3a96e562c83e9ab9aaf5fb494c924d1
