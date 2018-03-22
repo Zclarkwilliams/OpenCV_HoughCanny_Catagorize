@@ -29,32 +29,31 @@ load_imgs(diledir)
     output
         imgfile -> list of files loaded from directory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
-def load_imgs(filedir):
-    global imgfile
-    imgfile = []
+def load_imgs(file_dir):
+    global img_file
+    img_file = []
     i = 0
 
     print("Loading images from file...")
 
-    for file in os.listdir(filedir):
+    for file in os.listdir(file_dir):
         #    Decode the filename from the file system
         filename = os.fsdecode(file)
         if filename.endswith(".jpg"):
-            imgfile.append(zack_path_ext + "/" + filename)
+            img_file.append(zack_path_ext + "/" + filename)
         else:
             print("ERROR: Incorrect File Type File: " + filename)
             exit
     global img_list
     img_list = []
     i = 0
-    for i in range(len(imgfile)):
-        img = cv2.imread(imgfile[i])
+    for i in range(len(img_file)):
+        img = cv2.imread(img_file[i])
         r = 100.0 / img.shape[1]
         dim = (100, int(img.shape[0] * r))
         resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
         img_list.append(resized)
     print("Images loaded successfully.")
-
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 read_imgs(imagefile)
@@ -65,23 +64,20 @@ read_imgs(imagefile)
     output
         img_list -> list of read images 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
-def read_imgs(imagefile, loadtype):
+def read_imgs(image_file):
     global img_list
     img_list = []
     i = 0
     
     print("Reading images through...")
 
-    for i in range(len(imgfile)):
-        img = cv2.imread(imgfile[i])
-        if loadtype == GRY: #   if user wants greyscale image
-            img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    for i in range(len(img_file)):
+        img = cv2.imread(img_file[i])
 
         #   Add image to list
         img_list.append(img)
 
     print("Images read successfully.")
-
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 canny_fltr(imgs)
@@ -95,81 +91,27 @@ def canny_fltr(imgs):
     global edge_list
     edge_list = []
     i = 0
+    j = 0
 
     #   Threshold values for edge detection of Canny Filter
     min_thresh = 50
-    max_thresh = 150
+    max_thresh = 200
 
     print("Processing images through canny filter...")
 
     for i in range(len(imgs)):
         if imgs[i] is not None:
+            #   Convert the image to greyscale for processing
+            img = cv2.cvtColor(imgs[i],cv2.COLOR_BGR2GRAY)
+
             #   Process through canny edge detection filter
-            edge = cv2.Canny(imgs[i], min_thresh, max_thresh, apertureSize = 3)
+            edge = cv2.Canny(img, min_thresh, max_thresh, apertureSize = 3)
             edge_list.append(edge)
         else:
             print("ERROR(canny_fltr()): Image file is 'None' file: " + str(imgs[i]))
             exit
+
     print("Images processed through Canny filter successfully.")
-
-
-'''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-hough_fltr(img_edges)
-    Apply Hough transofrm with a line detectiong to image that is read-in.
-    The image list fed in is expected to be run through the canny filter 
-    first, canny_fltr(). Hough lines filter/effect from OpenCV3.
-    input 
-        img_edges -> list of images from already processed through Canny
-        trans_type -> chose transform function type
-                            HoughLines
-                            HoughLinesP
-                            HoughLinesPoint_Set
-                            HoughCircles
-                            
-    output
-        hough_list -> list of images with hough line detection applied
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
-def hough_fltr(og_imgs, img_edges, trans_type):
-    global hough_list
-    hough_list = []
-    i = 0
-
-    print("Processing hough line detection transform...")
-
-    for i in range(len(img_edges)):
-        if img_edges[i] is not None:
-            if trans_type == PROB:       #   Hough Lines Probabilistic Function
-                minLineLength = 100
-                maxLineGap = 10
-                lines = cv2.HoughLinesP(img_edges[i],1,np.pi/180,100,\
-                                        minLineLength,maxLineGap)
-                for x1,y1,x2,y2 in lines[0]:
-                    cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)
-            elif trans_type == POINTS:    #   Hough Lines Point Set Function
-                lines = cv2.HoughLinesPointSet()
-            elif trans_type == CIRCLES:  #   Hough Cirles Function
-                lines = cv2.HoughCircles()
-            else:                        #   Default to process as HoughLines function
-                lines = cv2.HoughLines(img_edges[i],1,np.pi/180,200)
-                for rho,theta in lines[0]:
-                    a = np.cos(theta)
-                    b = np.sin(theta)
-                    x0 = a*rho
-                    y0 = b*rho
-                    x1 = int(x0 + 1000*(-b))
-                    y1 = int(y0 + 1000*(a))
-                    x2 = int(x0 - 1000*(-b))
-                    y2 = int(y0 - 1000*(a))
-
-                    hough_img = img_edges[i]
-
-                    cv2.line(hough_img[i], (x1,y1), (x2,y2), (0,0,255), 2)
-                plt.figure()
-                plt.imshow(hough_img)
-                hough_list.append(hough_img)
-
-                cv2.imwrite('houghlines' + str(i) + '.jpg', hough_img[i])
-
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 dilate_fltr(imgs)
@@ -205,7 +147,7 @@ def dilate_fltr(imgs, subs):
     print("Images processed through dilation successfully.")
 
     #   Subtract original image from dilated image
-    if subs == 1:
+    if subs == True:
         print("Dilated images seperating from original image...")
         j = 0
         for j in range(len(dilated_list)):
@@ -216,25 +158,108 @@ def dilate_fltr(imgs, subs):
                 img_diff_list.append(img_diff)
         print("Original image removed from dilated transformation successfully.")
 
+'''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+hough_fltr(img_edges)
+    Apply Hough transofrm with a line detectiong to image that is read-in.
+    The image list fed in is expected to be run through the canny filter 
+    first, canny_fltr(). Hough lines filter/effect from OpenCV3.
+    input 
+        img_edges -> list of images from already processed through Canny
+        trans_type -> chose transform function type
+                            HoughLines
+                            HoughLinesP
+                            HoughLinesPoint_Set
+                            HoughCircles
+                            
+    output
+        hough_list -> list of images with hough line detection applied
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
+def hough_fltr(og_imgs, img_edges, trans_type):
+    global hough_list
+    hough_list = []
+    i = 0
+
+    #   Set parameters
+    minLineLength = 500
+    maxLineGap = 10
+    ctheta = np.pi/180
+    linethresh = 200
+    thresh = 750
+    rho = 1
+    numlines = 100
+    linewidth = 2
+    green = 0
+    blue = 255
+    red = 255
+
+    print("Processing Lough line detection transform...")
+
+    for i in range(len(img_edges)):
+        if img_edges[i] is not None:
+            #   Set copy of original images to integrate lines in
+            img = og_imgs[i]
+
+            if trans_type == PROB:       #   Hough Lines Probabilistic Function
+                #   Derived probabalistic line points
+                lines = cv2.HoughLinesP(img_edges[i],rho,ctheta,thresh,minLineLength,maxLineGap)
+                #   Process the lines derived and apply to image
+                for line in lines:
+                    x1,y1,x2,y2 = line[0]
+                    cv2.line(img,(x1,y1),(x2,y2),(blue,green,red),linewidth)
+
+            elif trans_type == POINTS:    #   Hough Lines Point Set Function
+                print("ERROR: Point cloud functionality not setup yet. (hough_fltr())")
+                #lines = cv2.HoughLinesPointSet()
+
+            elif trans_type == CIRCLES:  #   Hough Cirles Function
+                print("ERROR: Circles functionality not setup yet. (hough_fltr())")
+                #lines = cv2.HoughCircles()
+            
+            elif trans_type == LINES:    #   Default to process as HoughLines function
+                lines = cv2.HoughLines(img_edges[i],rho,ctheta,linethresh,numlines)
+                for line in lines:
+                    rho,theta = line[0]
+                    a = np.cos(theta)
+                    b = np.sin(theta)
+                    x0 = a*rho
+                    y0 = b*rho
+                    x1 = int(x0 + 1000*(-b))
+                    y1 = int(y0 + 1000*(a))
+                    x2 = int(x0 - 1000*(-b))
+                    y2 = int(y0 - 1000*(a))
+
+                    cv2.line(img,(x1,y1),(x2,y2),(blue,green,red),linewidth)
+
+            else:   #   Error control for transform type
+                print("ERROR: Invalid transform type entered. (hough_fltr())")
+            
+            #   Add edited image to the array of images
+            hough_list.append(img)
+
+            #   Save image with lines integrated
+            #cv2.imwrite('houghlines' + str(i) + '.jpg', img)
+
+        else:   #   
+            print("ERROR: File number %s from filter imaged loaded was empty. (hough_fltr())" + str(i))
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 print_imgs(og_imgs, fltr_imgs)
     Print the images, 1 original with its filtered counterpart
     input
-        og_imgs   -> list of originally loaded images for comparative perspective
+        imgs      -> list of originally loaded images for comparative perspective
         fltr_imgs -> list of filtered or altered images
     output
         NONE -> This will diplay images in external window so there should be no 
                output
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'''
-def print_imgs(og_imgs, fltr_imgs):
+def print_imgs(imgs, fltr_imgs):
 
     print("Plotting filtered and original iamges...")
 
     i = 0
-    if len(og_imgs) == len(fltr_imgs):
-        for i in range(len(og_imgs)):
-            if og_imgs is not None and fltr_imgs is not None:
+    if len(imgs) == len(fltr_imgs):
+        for i in range(len(imgs)):
+            if imgs is not None and fltr_imgs is not None:
                 plt.figure()
                 a1 = plt.subplot(1,2,1)
                 a1.imshow(fltr_imgs[i])
@@ -242,27 +267,26 @@ def print_imgs(og_imgs, fltr_imgs):
                 a1.set_title('Filtered Image ' \
                               + str(i) \
                               + " of " \
-                              + str(len(fltr_imgs)))
+                              + str(len(fltr_imgs) + 1))
                 a2 = plt.subplot(1,2,2)
-                a2.imshow(og_imgs[i])
+                a2.imshow(imgs[i])
                 plt.axis('off')
                 a2.set_title('Original Image ' \
                               + str(i) \
                               + " of " \
-                              + str(len(og_imgs)))
+                              + str(len(imgs)))
                 plt.show()
             else:
                 print("ERROR(print_imgs()): Image file is 'None' original image file: " \
-                       + og_imgs[i] \
+                       + imgs[i] \
                        + " and filtered file " \
                        + fltr_imgs[i])
                 exit
     else:
-        print("ERROR(print_imgs()): The loaded the input file lists are not the same length." +\
-              " Original image list length: " + str(len(og_imgs)) +\
-              " Filtered image list length: " + str(len(fltr_imgs)))
+        print("ERROR(print_imgs()): The loaded the input file lists are not the same length." \
+              + " Original image list length: " + str(len(imgs) + 1) \
+              + " Filtered image list length: " + str(len(fltr_imgs)))
         exit
-        
 
 '''^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 wait_to_close()
@@ -289,18 +313,17 @@ def wait_to_close():
 load_imgs(directory)
 
 #   Read in images / encode as bitmap
-#   Greyscale or RGB?
-clrtype = input("Would you like th images processed in grayscale(gry) or rgb(rgb): ")
-if clrtype == 'gry' or clrtype == 'GRY':
-    read_imgs(imgfile, GRY)
-else:
-    read_imgs(imgfile, RGB)
+read_imgs(img_file)
 
 #   Apply Canny Transform filtering to the read image/bitmap
 canny_fltr(img_list)
 
+#   Dilate and differentiate the image with noise
+dilate_fltr(edge_list, False)
+
 #   Apply Hough transform for line/circle/point/lineprobabalistic image analysis
-houghtype = input("Which Hough trans type; Lines(l), LineProbability(lp), Circles(c), Points(p): ")
+'''
+houghtype = input("\n\nWhich Hough trans type; Lines(l), LineProbability(lp), Circles(c), Points(p): ")
 if houghtype == 'p' or houghtype == 'P':
     hough_fltr(img_list, edge_list, POINTS)
 elif houghtype == 'lp' or houghtype == 'LP':
@@ -309,9 +332,8 @@ elif houghtype == 'c' or houghtype == 'C':
     hough_fltr(img_list, edge_list, CIRCLES)
 else:   # Default type LINES
     hough_fltr(img_list, edge_list, LINES)
-    
-#   Dilate and differentiate the image with noise
-#dilate_fltr(edge_list, 0)
+'''
+hough_fltr(img_list, dilated_list, PROB)
 
 #   Print the image files, both original and transformed/filtered images
 print_imgs(img_list, hough_list)
